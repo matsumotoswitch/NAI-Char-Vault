@@ -15,6 +15,46 @@
     <!-- コピー成功時のポップアップ -->
     <div id="toast">プロンプトをコピーしました！</div>
 
+    <!-- キャラクター追加ボタン (FAB) -->
+    <button id="add-fab" class="fab" title="キャラクターを追加">＋</button>
+
+    <!-- キャラクター追加モーダル -->
+    <div id="add-modal" class="modal">
+        <div class="modal-content">
+            <h3>キャラクターを登録</h3>
+            <form id="add-form">
+                <div class="form-group">
+                    <label for="work-title">作品名</label>
+                    <input type="text" id="work-title" required placeholder="例: ふたりはプリキュア">
+                </div>
+                <div class="form-group">
+                    <label for="work-title-en">作品名 (英語)</label>
+                    <input type="text" id="work-title-en" required placeholder="例: futari wa pretty cure">
+                </div>
+                <div class="form-group">
+                    <label for="char-name">キャラクター名</label>
+                    <input type="text" id="char-name" required placeholder="例: キュアブラック">
+                </div>
+                <div class="form-group">
+                    <label for="char-name-en">キャラクター名 (英語)</label>
+                    <input type="text" id="char-name-en" required placeholder="例: cure black">
+                </div>
+                <div class="form-group">
+                    <label for="char-image">画像URL</label>
+                    <input type="url" id="char-image" required placeholder="https://...">
+                </div>
+                <div class="form-actions" style="justify-content: space-between;">
+                    <!-- 自動取得ボタン -->
+                    <button type="button" id="auto-fetch-btn" class="btn-magic" title="作品名からキャラクター情報を自動取得します">🪄 アニメDBから一括登録</button>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" id="cancel-btn" class="btn-secondary">キャンセル</button>
+                        <button type="submit" class="btn-primary">手動登録</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="data.js"></script>
     <script src="main.js"></script>
 </body>

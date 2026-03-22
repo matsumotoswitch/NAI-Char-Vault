@@ -4,10 +4,32 @@
  */
 
 // ==========================================
+// 1.5. ローカルストレージのユーティリティ
+// ==========================================
+const STORAGE_KEYS = {
+    CUSTOM_CHARACTERS: 'customCharacters',
+    DELETED_DATA: 'deletedData'
+};
+
+function getStorage(key, defaultValue) {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+}
+
+function setStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+// ==========================================
 // 1. DOM要素・グローバル変数の初期化
 // ==========================================
 const appContainer = document.getElementById('app');
 const toast = document.getElementById('toast');
+const addFab = document.getElementById('add-fab');
+const addModal = document.getElementById('add-modal');
+const addForm = document.getElementById('add-form');
+const cancelBtn = document.getElementById('cancel-btn');
+const autoFetchBtn = document.getElementById('auto-fetch-btn');
 let toastTimeout;
 
 // ==========================================
@@ -48,57 +70,293 @@ function showToast(message) {
 }
 
 // ==========================================
-// 4. 画面（HTML）の動的生成
+// 4. データのマージ (ローカルストレージ対応)
 // ==========================================
 /**
- * worksDataの配列をループ処理し、各作品・キャラクターのHTML要素を生成して画面に追加する
+ * data.js の基本データと、ブラウザに保存されたカスタムデータを結合する
  */
+function getMergedData() {
+    // data.js の worksData をディープコピーしてベースにする
+    const merged = JSON.parse(JSON.stringify(worksData));
+    
+    const customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+    
+    customData.forEach(customWork => {
+        const existingWork = merged.find(w => w.title === customWork.title);
+        if (existingWork) {
+            existingWork.characters.push(...customWork.characters);
+        } else {
+            merged.push(customWork);
+        }
+    });
+    
+    const deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
+    
+    return merged
+        .filter(work => !deleted.titles.includes(work.title))
+        .map(work => {
+            if (deleted.characters[work.title]) {
+                work.characters = work.characters.filter(c => !deleted.characters[work.title].includes(c.name));
+            }
+            return work;
+        })
+        .filter(work => work.characters.length > 0);
+}
+
+// ==========================================
+// 5. 画面（HTML）の動的生成
+// ==========================================
+function createCharacterCard(work, char) {
+    const card = document.createElement('div');
+    card.className = 'character-card';
+    
+    const copyName = char.nameEn || char.name;
+    const copyTitle = work.titleEn || work.title;
+    card.addEventListener('click', () => copyToClipboard(`${copyName} (${copyTitle})`, char.name));
+
+    const deleteCharBtn = document.createElement('button');
+    deleteCharBtn.className = 'btn-delete-char';
+    deleteCharBtn.innerHTML = '×';
+    deleteCharBtn.title = 'キャラクターを削除';
+    deleteCharBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteCharacter(work.title, char.name);
+    });
+
+    const img = document.createElement('img');
+    img.className = 'character-image';
+    img.src = char.image;
+    img.alt = char.name;
+
+    const name = document.createElement('p');
+    name.className = 'character-name';
+    name.textContent = char.name;
+
+    card.append(deleteCharBtn, img, name);
+    return card;
+}
+
+function createWorkSection(work) {
+    const workSection = document.createElement('div');
+    workSection.className = 'work-section';
+
+    const header = document.createElement('div');
+    header.className = 'work-header';
+
+    const title = document.createElement('h2');
+    title.className = 'work-title';
+    title.textContent = work.title;
+
+    const deleteTitleBtn = document.createElement('button');
+    deleteTitleBtn.className = 'btn-delete-title';
+    deleteTitleBtn.innerHTML = '🗑️ 作品を削除';
+    deleteTitleBtn.addEventListener('click', () => deleteTitle(work.title));
+
+    header.append(title, deleteTitleBtn);
+    workSection.appendChild(header);
+
+    const grid = document.createElement('div');
+    grid.className = 'character-grid';
+
+    work.characters.forEach(char => {
+        grid.appendChild(createCharacterCard(work, char));
+    });
+
+    workSection.appendChild(grid);
+    return workSection;
+}
+
 function renderApp() {
-    worksData.forEach(work => {
-        // セクションの作成
-        const workSection = document.createElement('div');
-        workSection.className = 'work-section';
+    appContainer.innerHTML = ''; // 既存の要素をクリア
+    const dataToRender = getMergedData();
 
-        // タイトルの作成
-        const title = document.createElement('h2');
-        title.className = 'work-title';
-        title.textContent = work.title;
-        workSection.appendChild(title);
+    if (dataToRender.length === 0) {
+        appContainer.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 40px;">キャラクターが登録されていません。<br>右下のボタンから追加してください。</p>';
+        return;
+    }
 
-        // キャラクターグリッドの作成
-        const grid = document.createElement('div');
-        grid.className = 'character-grid';
-
-        work.characters.forEach(char => {
-            // キャラクターカードの作成
-            const card = document.createElement('div');
-            card.className = 'character-card';
-            // ★ カード全体にクリックイベントを紐付け ★
-            card.addEventListener('click', () => copyToClipboard(char.prompt, char.name));
-
-            // 画像要素の作成
-            const img = document.createElement('img');
-            img.className = 'character-image';
-            img.src = char.image;
-            img.alt = char.name;
-
-            // 名前要素の作成
-            const name = document.createElement('p');
-            name.className = 'character-name';
-            name.textContent = char.name;
-
-            // カードに画像と名前を追加し、グリッドに配置
-            card.appendChild(img);
-            card.appendChild(name);
-            grid.appendChild(card);
-        });
-
-        workSection.appendChild(grid);
-        appContainer.appendChild(workSection);
+    dataToRender.forEach(work => {
+        appContainer.appendChild(createWorkSection(work));
     });
 }
 
 // ==========================================
-// 5. アプリケーションの初期化
+// 6. キャラクター登録フォームの制御
+// ==========================================
+
+// モーダルを開く
+addFab.addEventListener('click', () => {
+    addModal.classList.add('show');
+});
+
+// モーダルを閉じる
+cancelBtn.addEventListener('click', () => {
+    addModal.classList.remove('show');
+    addForm.reset();
+});
+
+// フォーム送信（保存）処理
+addForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('work-title').value.trim();
+    const titleEn = document.getElementById('work-title-en').value.trim();
+    const name = document.getElementById('char-name').value.trim();
+    const nameEn = document.getElementById('char-name-en').value.trim();
+    const image = document.getElementById('char-image').value.trim();
+
+    const customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+
+    let work = customData.find(w => w.title === title);
+    if (!work) {
+        work = { title: title, titleEn: titleEn, characters: [] };
+        customData.push(work);
+    } else if (!work.titleEn) {
+        work.titleEn = titleEn;
+    }
+
+    work.characters.push({ name, nameEn, image });
+    setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
+
+    renderApp();
+    addModal.classList.remove('show');
+    addForm.reset();
+    showToast(`「${name}」を登録しました！`);
+});
+
+function setLoadingState(isLoading) {
+    autoFetchBtn.textContent = isLoading ? '⏳ 取得中...' : '🪄 アニメDBから一括登録';
+    autoFetchBtn.disabled = isLoading;
+}
+
+function processAnimeData(media, titleInput) {
+    const fetchedTitle = media.title.native || media.title.romaji || titleInput;
+    const fetchedTitleEn = media.title.english || media.title.romaji || titleInput;
+    const characters = media.characters.edges.map(edge => edge.node);
+
+    if (characters.length === 0) throw new Error('キャラクター情報が見つかりませんでした。');
+
+    const customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+
+    let work = customData.find(w => w.title === fetchedTitle);
+    if (!work) {
+        work = { title: fetchedTitle, titleEn: fetchedTitleEn.toLowerCase(), characters: [] };
+        customData.push(work);
+    }
+
+    let addedCount = 0;
+    characters.forEach(c => {
+        const charName = c.name.native || c.name.full;
+        if (!work.characters.find(existing => existing.name === charName)) {
+            work.characters.push({ 
+                name: charName, 
+                nameEn: c.name.full.toLowerCase(), 
+                image: c.image.large 
+            });
+            addedCount++;
+        }
+    });
+
+    if (addedCount > 0) {
+        setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
+        renderApp();
+        addModal.classList.remove('show');
+        addForm.reset();
+        showToast(`「${fetchedTitle}」のキャラを${addedCount}人自動登録しました！`);
+    } else {
+        alert('新しいキャラクターは見つかりませんでした（すべて登録済みです）。');
+    }
+}
+
+autoFetchBtn.addEventListener('click', async () => {
+    const titleInput = document.getElementById('work-title').value.trim();
+    if (!titleInput) {
+        alert('自動取得するには、まず「作品名」を入力してください。');
+        return;
+    }
+
+    // AniList GraphQL API のクエリ (上位10名のキャラ情報を取得)
+    const query = `
+    query ($search: String) {
+      Media (search: $search, type: ANIME) {
+        title { native romaji english }
+        characters(sort: ROLE, perPage: 10) {
+          edges {
+            node {
+              name { full native }
+              image { large }
+              gender
+            }
+          }
+        }
+      }
+    }
+    `;
+
+    try {
+        setLoadingState(true);
+
+        const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ query: query, variables: { search: titleInput } })
+        });
+
+        const json = await response.json();
+        if (!json.data?.Media) {
+            throw new Error('作品データベースに見つかりませんでした。別のタイトルで試してください。');
+        }
+
+        processAnimeData(json.data.Media, titleInput);
+    } catch (err) {
+        alert(err.message || '通信エラーが発生しました。');
+    } finally {
+        setLoadingState(false);
+    }
+});
+
+// ==========================================
+// 7. 削除処理
+// ==========================================
+function deleteCharacter(title, charName) {
+    let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+    
+    let workInCustom = customData.find(w => w.title === title);
+    if (workInCustom) {
+        workInCustom.characters = workInCustom.characters.filter(c => c.name !== charName);
+        if (workInCustom.characters.length === 0) {
+            customData = customData.filter(w => w.title !== title);
+        }
+        setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
+    }
+    
+    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
+    if (!deleted.characters[title]) {
+        deleted.characters[title] = [];
+    }
+    if (!deleted.characters[title].includes(charName)) {
+        deleted.characters[title].push(charName);
+    }
+    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
+    
+    renderApp();
+}
+
+function deleteTitle(title) {
+    let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+    customData = customData.filter(w => w.title !== title);
+    setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
+    
+    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
+    if (!deleted.titles.includes(title)) {
+        deleted.titles.push(title);
+    }
+    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
+    
+    renderApp();
+}
+
+// ==========================================
+// 8. アプリケーションの初期化
 // ==========================================
 renderApp();

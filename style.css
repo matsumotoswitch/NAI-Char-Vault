@@ -35,14 +35,36 @@ body {
     margin-bottom: 60px; 
     animation: fadeIn 0.5s ease-out;
 }
-.work-title { 
+.work-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     border-bottom: 2px solid var(--accent-color); 
-    padding-bottom: 12px; 
     margin-bottom: 30px; 
+    padding-bottom: 12px; 
+}
+.work-title { 
+    border-bottom: none; 
+    padding-bottom: 0; 
+    margin-bottom: 0; 
     color: var(--text-main); 
     font-size: 1.75rem;
     font-weight: 700;
-    display: inline-block;
+}
+.btn-delete-title {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--text-sub);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+.btn-delete-title:hover {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: #dc2626;
+    color: #f87171;
 }
 
 /* ==========================================================================
@@ -58,6 +80,7 @@ body {
    コンポーネント: キャラクターカード
    ========================================================================== */
 .character-card { 
+    position: relative;
     background: var(--card-bg); 
     border-radius: var(--card-radius); 
     overflow: hidden; 
@@ -67,6 +90,29 @@ body {
     text-align: center; 
     padding-bottom: 16px; 
     border: 1px solid rgba(255,255,255,0.05);
+}
+.btn-delete-char {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-main);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    z-index: 10;
+}
+.btn-delete-char:hover {
+    background: #dc2626;
+    color: #fff;
+    transform: scale(1.1);
 }
 .character-card:hover { 
     transform: translateY(-8px); 
@@ -79,6 +125,7 @@ body {
     width: 100%; 
     height: 200px; 
     object-fit: cover; 
+    object-position: top;
     background-color: #334155; 
     border-bottom: 1px solid rgba(255,255,255,0.05);
     transition: var(--transition);
@@ -126,4 +173,119 @@ body {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   コンポーネント: 追加ボタン (FAB) & モーダル
+   ========================================================================== */
+.fab {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    font-size: 28px;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    cursor: pointer;
+    transition: var(--transition);
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fab:hover {
+    transform: scale(1.1);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.8);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.2s ease-out;
+}
+.modal-content {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: var(--card-radius);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal-content h3 {
+    margin-top: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
+}
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: var(--text-sub);
+}
+.form-group input, .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-color);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-main);
+    border-radius: 8px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 30px;
+}
+.btn-primary, .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+.btn-primary {
+    background: var(--accent-color);
+    color: #fff;
+}
+.btn-primary:hover {
+    filter: brightness(1.2);
+}
+.btn-secondary {
+    background: #334155;
+    color: var(--text-main);
+}
+.btn-secondary:hover {
+    background: #475569;
+}
+.btn-magic {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff;
+    transition: var(--transition);
+}
+.btn-magic:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
