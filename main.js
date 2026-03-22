@@ -281,9 +281,15 @@ function processAnimeData(media, titleInput) {
     characters.forEach(c => {
         const charName = c.name.native || c.name.full;
         if (!work.characters.find(existing => existing.name === charName)) {
+            
+            let charNameEn = c.name.full.toLowerCase();
+            if (c.name.last && c.name.first) {
+                charNameEn = `${c.name.last} ${c.name.first}`.toLowerCase();
+            }
+
             work.characters.push({ 
                 name: charName, 
-                nameEn: c.name.full.toLowerCase(), 
+                nameEn: charNameEn, 
                 image: c.image.large 
             });
             addedCount++;
@@ -324,7 +330,7 @@ autoFetchBtn.addEventListener('click', async () => {
           }
           edges {
             node {
-              name { full native }
+              name { full native first last }
               image { large }
               gender
             }
