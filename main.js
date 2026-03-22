@@ -218,6 +218,16 @@ addForm.addEventListener('submit', (e) => {
     work.characters.push({ name, nameEn, image });
     setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
 
+    // 削除履歴に登録されている場合は解除する
+    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
+    if (deleted.titles.includes(title)) {
+        deleted.titles = deleted.titles.filter(t => t !== title);
+    }
+    if (deleted.characters[title] && deleted.characters[title].includes(name)) {
+        deleted.characters[title] = deleted.characters[title].filter(c => c !== name);
+    }
+    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
+
     renderApp();
     addModal.classList.remove('show');
     addForm.reset();
@@ -244,6 +254,11 @@ function processAnimeData(media, titleInput) {
         customData.push(work);
     }
 
+    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
+    if (deleted.titles.includes(fetchedTitle)) {
+        deleted.titles = deleted.titles.filter(t => t !== fetchedTitle);
+    }
+
     let addedCount = 0;
     characters.forEach(c => {
         const charName = c.name.native || c.name.full;
@@ -254,11 +269,16 @@ function processAnimeData(media, titleInput) {
                 image: c.image.large 
             });
             addedCount++;
+
+            if (deleted.characters[fetchedTitle] && deleted.characters[fetchedTitle].includes(charName)) {
+                deleted.characters[fetchedTitle] = deleted.characters[fetchedTitle].filter(n => n !== charName);
+            }
         }
     });
 
     if (addedCount > 0) {
         setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
+        setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
         renderApp();
         addModal.classList.remove('show');
         addForm.reset();
@@ -329,16 +349,7 @@ function deleteCharacter(title, charName) {
         }
         setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
     }
-    
-    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
-    if (!deleted.characters[title]) {
-        deleted.characters[title] = [];
-    }
-    if (!deleted.characters[title].includes(charName)) {
-        deleted.characters[title].push(charName);
-    }
-    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
-    
+
     renderApp();
 }
 
@@ -346,13 +357,7 @@ function deleteTitle(title) {
     let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
     customData = customData.filter(w => w.title !== title);
     setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
-    
-    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
-    if (!deleted.titles.includes(title)) {
-        deleted.titles.push(title);
-    }
-    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
-    
+
     renderApp();
 }
 
