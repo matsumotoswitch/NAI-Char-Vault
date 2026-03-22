@@ -120,7 +120,14 @@ function createCharacterCard(work, char) {
     deleteCharBtn.title = 'キャラクターを削除';
     deleteCharBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        const sectionElement = card.closest('.work-section');
         deleteCharacter(work.title, char.name);
+        card.remove(); // 画面からカードを直接削除
+        // セクション内にキャラクターがいなくなったらセクションごと削除
+        if (sectionElement && sectionElement.querySelector('.character-grid').children.length === 0) {
+            sectionElement.remove();
+        }
+        checkEmptyState();
     });
 
     const img = document.createElement('img');
@@ -150,7 +157,11 @@ function createWorkSection(work) {
     const deleteTitleBtn = document.createElement('button');
     deleteTitleBtn.className = 'btn-delete-title';
     deleteTitleBtn.innerHTML = '🗑️ 作品を削除';
-    deleteTitleBtn.addEventListener('click', () => deleteTitle(work.title));
+    deleteTitleBtn.addEventListener('click', () => {
+        deleteTitle(work.title);
+        workSection.remove(); // 画面からセクションを直接削除
+        checkEmptyState();
+    });
 
     header.append(title, deleteTitleBtn);
     workSection.appendChild(header);
@@ -166,12 +177,18 @@ function createWorkSection(work) {
     return workSection;
 }
 
+function checkEmptyState() {
+    if (appContainer.children.length === 0) {
+        appContainer.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 40px;">キャラクターが登録されていません。<br>右下のボタンから追加してください。</p>';
+    }
+}
+
 function renderApp() {
     appContainer.innerHTML = ''; // 既存の要素をクリア
     const dataToRender = getMergedData();
 
     if (dataToRender.length === 0) {
-        appContainer.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 40px;">キャラクターが登録されていません。<br>右下のボタンから追加してください。</p>';
+        checkEmptyState();
         return;
     }
 
@@ -349,16 +366,12 @@ function deleteCharacter(title, charName) {
         }
         setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
     }
-
-    renderApp();
 }
 
 function deleteTitle(title) {
     let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
     customData = customData.filter(w => w.title !== title);
     setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
-
-    renderApp();
 }
 
 // ==========================================
