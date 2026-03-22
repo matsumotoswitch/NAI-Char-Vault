@@ -357,6 +357,7 @@ autoFetchBtn.addEventListener('click', async () => {
             });
 
             const json = await response.json();
+            console.log('Fetched JSON (Page ' + page + '):', json);
             if (!json.data?.Media) {
                 if (page === 1) throw new Error('作品データベースに見つかりませんでした。別のタイトルで試してください。');
                 break;
