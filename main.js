@@ -312,12 +312,12 @@ autoFetchBtn.addEventListener('click', async () => {
         return;
     }
 
-    // AniList GraphQL API のクエリ (上位10名のキャラ情報を取得)
+    // AniList GraphQL API のクエリ (上位50名のキャラ情報を取得)
     const query = `
     query ($search: String) {
       Media (search: $search, type: ANIME) {
         title { native romaji english }
-        characters(sort: ROLE, perPage: 10) {
+        characters(sort: ROLE, perPage: 50) {
           edges {
             node {
               name { full native }
