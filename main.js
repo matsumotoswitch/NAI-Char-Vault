@@ -110,9 +110,25 @@ function createCharacterCard(work, char) {
     const card = document.createElement('div');
     card.className = 'character-card';
     
-    const copyName = char.nameEn || char.name;
-    const copyTitle = work.titleEn || work.title;
-    card.addEventListener('click', () => copyToClipboard(`${copyName} (${copyTitle})`, char.name));
+    card.addEventListener('click', () => {
+        // 基本は手動登録時のデータを使用
+        let copyName = char.nameEn || char.name;
+        let copyTitle = work.titleEn || work.title;
+
+        // DBにAPIの生データ(JSON)が保存されている場合は、コピー時に動的に構成する
+        if (char.rawData && char.rawData.name) {
+            copyName = char.rawData.name.full.toLowerCase();
+            if (char.rawData.name.last && char.rawData.name.first) {
+                copyName = `${char.rawData.name.last} ${char.rawData.name.first}`.toLowerCase();
+            }
+        }
+        if (work.rawMediaData && work.rawMediaData.title) {
+            const t = work.rawMediaData.title;
+            copyTitle = (t.romaji || t.english || work.title).toLowerCase();
+        }
+
+        copyToClipboard(`${copyName} (${copyTitle})`, char.name);
+    });
 
     const deleteCharBtn = document.createElement('button');
     deleteCharBtn.className = 'btn-delete-char';
@@ -268,8 +284,16 @@ function processAnimeData(media, titleInput) {
 
     let work = customData.find(w => w.title === fetchedTitle);
     if (!work) {
-        work = { title: fetchedTitle, titleEn: fetchedTitleEn.toLowerCase(), characters: [] };
+        // キャラクター一覧が重複して巨大化するのを防ぐため、作品情報のみを分離して保存
+        const rawMediaData = JSON.parse(JSON.stringify(media));
+        delete rawMediaData.characters;
+
+        work = { title: fetchedTitle, titleEn: fetchedTitleEn.toLowerCase(), rawMediaData: rawMediaData, characters: [] };
         customData.push(work);
+    } else if (!work.rawMediaData) {
+        const rawMediaData = JSON.parse(JSON.stringify(media));
+        delete rawMediaData.characters;
+        work.rawMediaData = rawMediaData;
     }
 
     let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
@@ -282,15 +306,10 @@ function processAnimeData(media, titleInput) {
         const charName = c.name.native || c.name.full;
         if (!work.characters.find(existing => existing.name === charName)) {
             
-            let charNameEn = c.name.full.toLowerCase();
-            if (c.name.last && c.name.first) {
-                charNameEn = `${c.name.last} ${c.name.first}`.toLowerCase();
-            }
-
             work.characters.push({ 
                 name: charName, 
-                nameEn: charNameEn, 
-                image: c.image.large 
+                image: c.image.large,
+                rawData: c // APIから取得したキャラクターの生JSONをそのまま保存
             });
             addedCount++;
 
