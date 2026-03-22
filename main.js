@@ -33,7 +33,7 @@ const autoFetchBtn = document.getElementById('auto-fetch-btn');
 let toastTimeout;
 
 // ==========================================
-// 2. クリップボードへのコピー処理
+// 3. UIコンポーネント制御（通知・クリップボード）
 // ==========================================
 /**
  * 指定されたプロンプトをクリップボードにコピーし、完了通知を表示する
@@ -51,9 +51,6 @@ async function copyToClipboard(prompt, charName) {
     }
 }
 
-// ==========================================
-// 3. UIコンポーネント（トースト通知）の制御
-// ==========================================
 /**
  * 画面下部に数秒間メッセージを表示する
  * @param {string} message - 表示するテキスト
@@ -70,42 +67,35 @@ function showToast(message) {
 }
 
 // ==========================================
-// 4. データのマージ (ローカルストレージ対応)
+// 4. データ管理ロジック
 // ==========================================
 /**
- * data.js の基本データと、ブラウザに保存されたカスタムデータを結合する
+ * アプリケーションのデータを取得する
+ * 初回起動時は data.js の初期データをローカルストレージに保存して単一のデータベースとして扱います。
+ * @returns {Array} 描画用の作品データ配列
  */
-function getMergedData() {
-    // data.js の worksData をディープコピーしてベースにする
-    const merged = JSON.parse(JSON.stringify(worksData));
+function loadData() {
+    let data = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, null);
     
-    const customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
+    // ローカルストレージにデータがない（初回起動時）場合は data.js のデータを登録
+    if (!data) {
+        data = JSON.parse(JSON.stringify(worksData));
+        setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, data);
+    }
     
-    customData.forEach(customWork => {
-        const existingWork = merged.find(w => w.title === customWork.title);
-        if (existingWork) {
-            existingWork.characters.push(...customWork.characters);
-        } else {
-            merged.push(customWork);
-        }
-    });
-    
-    const deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
-    
-    return merged
-        .filter(work => !deleted.titles.includes(work.title))
-        .map(work => {
-            if (deleted.characters[work.title]) {
-                work.characters = work.characters.filter(c => !deleted.characters[work.title].includes(c.name));
-            }
-            return work;
-        })
-        .filter(work => work.characters.length > 0);
+    // キャラクターが0人の作品は除外して返す
+    return data.filter(work => work.characters.length > 0);
 }
 
 // ==========================================
-// 5. 画面（HTML）の動的生成
+// 5. UI描画ロジック (DOMの動的生成)
 // ==========================================
+/**
+ * キャラクターカードのDOM要素を生成する
+ * @param {Object} work - 所属する作品のデータ
+ * @param {Object} char - キャラクターデータ
+ * @returns {HTMLElement} カード要素
+ */
 function createCharacterCard(work, char) {
     const card = document.createElement('div');
     card.className = 'character-card';
@@ -159,6 +149,11 @@ function createCharacterCard(work, char) {
     return card;
 }
 
+/**
+ * 作品セクションのDOM要素を生成する
+ * @param {Object} work - 作品データ
+ * @returns {HTMLElement} セクション要素
+ */
 function createWorkSection(work) {
     const workSection = document.createElement('div');
     workSection.className = 'work-section';
@@ -194,15 +189,21 @@ function createWorkSection(work) {
     return workSection;
 }
 
+/**
+ * 画面が空になった場合に案内メッセージを表示する
+ */
 function checkEmptyState() {
     if (appContainer.children.length === 0) {
         appContainer.innerHTML = '<p style="text-align:center; color: var(--text-sub); padding: 40px;">キャラクターが登録されていません。<br>右下のボタンから追加してください。</p>';
     }
 }
 
+/**
+ * アプリケーションの画面全体を再描画する
+ */
 function renderApp() {
     appContainer.innerHTML = ''; // 既存の要素をクリア
-    const dataToRender = getMergedData();
+    const dataToRender = loadData();
 
     if (dataToRender.length === 0) {
         checkEmptyState();
@@ -215,7 +216,7 @@ function renderApp() {
 }
 
 // ==========================================
-// 6. キャラクター登録フォームの制御
+// 6. キャラクター登録・API連携ロジック
 // ==========================================
 
 // モーダルを開く
@@ -252,27 +253,26 @@ addForm.addEventListener('submit', (e) => {
     work.characters.push({ name, nameEn, image });
     setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
 
-    // 削除履歴に登録されている場合は解除する
-    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
-    if (deleted.titles.includes(title)) {
-        deleted.titles = deleted.titles.filter(t => t !== title);
-    }
-    if (deleted.characters[title] && deleted.characters[title].includes(name)) {
-        deleted.characters[title] = deleted.characters[title].filter(c => c !== name);
-    }
-    setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
-
     renderApp();
     addModal.classList.remove('show');
     addForm.reset();
     showToast(`「${name}」を登録しました！`);
 });
 
+/**
+ * API取得ボタンのローディング状態を切り替える
+ * @param {boolean} isLoading - 取得中かどうか
+ */
 function setLoadingState(isLoading) {
     autoFetchBtn.textContent = isLoading ? '取得中...' : 'アニメDBから一括登録';
     autoFetchBtn.disabled = isLoading;
 }
 
+/**
+ * アニメDBから取得したデータを整形してローカルストレージに保存する
+ * @param {Object} media - AniList APIから取得した作品データ
+ * @param {string} titleInput - ユーザーが入力した検索クエリ（フォールバック用）
+ */
 function processAnimeData(media, titleInput) {
     const fetchedTitle = media.title.native || media.title.romaji || titleInput;
     const fetchedTitleEn = media.title.romaji || media.title.english || titleInput;
@@ -296,11 +296,6 @@ function processAnimeData(media, titleInput) {
         work.rawMediaData = rawMediaData;
     }
 
-    let deleted = getStorage(STORAGE_KEYS.DELETED_DATA, { titles: [], characters: {} });
-    if (deleted.titles.includes(fetchedTitle)) {
-        deleted.titles = deleted.titles.filter(t => t !== fetchedTitle);
-    }
-
     let addedCount = 0;
     characters.forEach(c => {
         const charName = c.name.native || c.name.full;
@@ -312,16 +307,11 @@ function processAnimeData(media, titleInput) {
                 rawData: c // APIから取得したキャラクターの生JSONをそのまま保存
             });
             addedCount++;
-
-            if (deleted.characters[fetchedTitle] && deleted.characters[fetchedTitle].includes(charName)) {
-                deleted.characters[fetchedTitle] = deleted.characters[fetchedTitle].filter(n => n !== charName);
-            }
         }
     });
 
     if (addedCount > 0) {
         setStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, customData);
-        setStorage(STORAGE_KEYS.DELETED_DATA, deleted);
         renderApp();
         addModal.classList.remove('show');
         addForm.reset();
@@ -405,6 +395,11 @@ autoFetchBtn.addEventListener('click', async () => {
 // ==========================================
 // 7. 削除処理
 // ==========================================
+/**
+ * 特定のキャラクターを削除する
+ * @param {string} title - 作品名
+ * @param {string} charName - キャラクター名
+ */
 function deleteCharacter(title, charName) {
     let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
     
@@ -418,6 +413,10 @@ function deleteCharacter(title, charName) {
     }
 }
 
+/**
+ * 特定の作品とそれに含まれるキャラクターをすべて削除する
+ * @param {string} title - 作品名
+ */
 function deleteTitle(title) {
     let customData = getStorage(STORAGE_KEYS.CUSTOM_CHARACTERS, []);
     customData = customData.filter(w => w.title !== title);
