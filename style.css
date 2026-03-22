@@ -52,19 +52,25 @@ body {
     font-weight: 700;
 }
 .btn-delete-title {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    color: var(--text-sub);
-    padding: 6px 12px;
-    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: var(--transition);
+    position: relative;
+    top: 12px;
 }
 .btn-delete-title:hover {
-    background: rgba(220, 38, 38, 0.2);
-    border-color: #dc2626;
-    color: #f87171;
+    background: #dc2626;
+    color: #fff;
+    transform: scale(1.1);
 }
 
 /* ==========================================================================

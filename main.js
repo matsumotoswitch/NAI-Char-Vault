@@ -156,7 +156,8 @@ function createWorkSection(work) {
 
     const deleteTitleBtn = document.createElement('button');
     deleteTitleBtn.className = 'btn-delete-title';
-    deleteTitleBtn.innerHTML = '作品を削除';
+    deleteTitleBtn.innerHTML = '×';
+    deleteTitleBtn.title = '作品を削除';
     deleteTitleBtn.addEventListener('click', () => {
         deleteTitle(work.title);
         workSection.remove(); // 画面からセクションを直接削除
@@ -312,12 +313,15 @@ autoFetchBtn.addEventListener('click', async () => {
         return;
     }
 
-    // AniList GraphQL API のクエリ (上位50名のキャラ情報を取得)
+    // AniList GraphQL API のクエリ (ページネーション対応)
     const query = `
-    query ($search: String) {
+    query ($search: String, $page: Int) {
       Media (search: $search, type: ANIME) {
         title { native romaji english }
-        characters(sort: ROLE, perPage: 50) {
+        characters(sort: ROLE, page: $page, perPage: 50) {
+          pageInfo {
+            hasNextPage
+          }
           edges {
             node {
               name { full native }
@@ -333,18 +337,38 @@ autoFetchBtn.addEventListener('click', async () => {
     try {
         setLoadingState(true);
 
-        const response = await fetch('https://graphql.anilist.co', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ query: query, variables: { search: titleInput } })
-        });
+        let page = 1;
+        let hasNextPage = true;
+        let combinedMedia = null;
+        let allEdges = [];
 
-        const json = await response.json();
-        if (!json.data?.Media) {
-            throw new Error('作品データベースに見つかりませんでした。別のタイトルで試してください。');
+        // 次のページが存在する限り、全キャラクターを取得し続けるループ
+        while (hasNextPage) {
+            const response = await fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ query: query, variables: { search: titleInput, page: page } })
+            });
+
+            const json = await response.json();
+            if (!json.data?.Media) {
+                if (page === 1) throw new Error('作品データベースに見つかりませんでした。別のタイトルで試してください。');
+                break;
+            }
+
+            const media = json.data.Media;
+            if (!combinedMedia) combinedMedia = { ...media }; // 1ページ目の作品基本情報をベースにする
+            
+            allEdges = allEdges.concat(media.characters.edges);
+            hasNextPage = media.characters.pageInfo.hasNextPage;
+            page++;
         }
 
-        processAnimeData(json.data.Media, titleInput);
+        // 全ページの取得が完了したら、合体させたデータを処理へ渡す
+        if (combinedMedia) {
+            combinedMedia.characters.edges = allEdges;
+            processAnimeData(combinedMedia, titleInput);
+        }
     } catch (err) {
         alert(err.message || '通信エラーが発生しました。');
     } finally {
