@@ -231,7 +231,7 @@ function setLoadingState(isLoading) {
 
 function processAnimeData(media, titleInput) {
     const fetchedTitle = media.title.native || media.title.romaji || titleInput;
-    const fetchedTitleEn = media.title.english || media.title.romaji || titleInput;
+    const fetchedTitleEn = media.title.romaji || media.title.english || titleInput;
     const characters = media.characters.edges.map(edge => edge.node);
 
     if (characters.length === 0) throw new Error('キャラクター情報が見つかりませんでした。');
