@@ -156,7 +156,7 @@ function createWorkSection(work) {
 
     const deleteTitleBtn = document.createElement('button');
     deleteTitleBtn.className = 'btn-delete-title';
-    deleteTitleBtn.innerHTML = '🗑️ 作品を削除';
+    deleteTitleBtn.innerHTML = '作品を削除';
     deleteTitleBtn.addEventListener('click', () => {
         deleteTitle(work.title);
         workSection.remove(); // 画面からセクションを直接削除
@@ -252,7 +252,7 @@ addForm.addEventListener('submit', (e) => {
 });
 
 function setLoadingState(isLoading) {
-    autoFetchBtn.textContent = isLoading ? '⏳ 取得中...' : '🪄 アニメDBから一括登録';
+    autoFetchBtn.textContent = isLoading ? '取得中...' : 'アニメDBから一括登録';
     autoFetchBtn.disabled = isLoading;
 }
 
