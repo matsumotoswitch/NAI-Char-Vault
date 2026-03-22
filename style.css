@@ -1,0 +1,129 @@
+/* ==========================================================================
+   変数定義（モダンなダークテーマ）
+   ========================================================================== */
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-main: #f8fafc;
+    --text-sub: #cbd5e1;
+    --accent-color: #8b5cf6;
+    --accent-glow: rgba(139, 92, 246, 0.4);
+    --card-radius: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   全体のベーススタイル
+   ========================================================================== */
+body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+    background-color: var(--bg-color); 
+    color: var(--text-main); 
+    margin: 0; 
+    padding: 40px 20px; 
+    line-height: 1.6;
+}
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+}
+
+/* ==========================================================================
+   レイアウト・セクション
+   ========================================================================== */
+.work-section { 
+    margin-bottom: 60px; 
+    animation: fadeIn 0.5s ease-out;
+}
+.work-title { 
+    border-bottom: 2px solid var(--accent-color); 
+    padding-bottom: 12px; 
+    margin-bottom: 30px; 
+    color: var(--text-main); 
+    font-size: 1.75rem;
+    font-weight: 700;
+    display: inline-block;
+}
+
+/* ==========================================================================
+   コンポーネント: キャラクターグリッド
+   ========================================================================== */
+.character-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+    gap: 24px; 
+}
+
+/* ==========================================================================
+   コンポーネント: キャラクターカード
+   ========================================================================== */
+.character-card { 
+    background: var(--card-bg); 
+    border-radius: var(--card-radius); 
+    overflow: hidden; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2); 
+    cursor: pointer; 
+    transition: var(--transition); 
+    text-align: center; 
+    padding-bottom: 16px; 
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.character-card:hover { 
+    transform: translateY(-8px); 
+    box-shadow: 0 12px 24px var(--accent-glow); 
+    border-color: var(--accent-color);
+}
+
+/* カード内の画像とテキスト */
+.character-image { 
+    width: 100%; 
+    height: 200px; 
+    object-fit: cover; 
+    background-color: #334155; 
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: var(--transition);
+}
+.character-card:hover .character-image {
+    filter: brightness(1.1);
+}
+.character-name { 
+    margin: 16px 10px 0; 
+    font-weight: 600; 
+    font-size: 1.1rem; 
+}
+
+/* ==========================================================================
+   コンポーネント: トースト通知（ポップアップ）
+   ========================================================================== */
+#toast { 
+    visibility: hidden; 
+    min-width: 280px; 
+    background-color: var(--accent-color); 
+    color: #fff; 
+    text-align: center; 
+    border-radius: 50px; 
+    padding: 16px 24px; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 50%; 
+    bottom: 40px; 
+    transform: translateX(-50%) translateY(20px); 
+    font-weight: 600;
+    font-size: 15px; 
+    box-shadow: 0 10px 30px var(--accent-glow); 
+    transition: visibility 0s, opacity 0.3s ease, transform 0.3s ease; 
+    opacity: 0; 
+}
+#toast.show { 
+    visibility: visible; 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   アニメーション定義
+   ========================================================================== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
